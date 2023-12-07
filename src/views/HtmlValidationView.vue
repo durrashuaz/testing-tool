@@ -1,34 +1,38 @@
 <template>
 	<div class="html-validator__form">
-		<label for="url">Site:</label><br>
-		<input type="text" id="url" name="url" v-model="urlToCheck" class="form__input">
-		<button @click="fetchApiData">Check</button>
+		<label class="bold" for="url">Homepage URL</label><br>
+		<input type="text" id="url" name="url" v-model="urlToCheck" class="html-validator__form__input">
+		<button class="button" @click="fetchApiData">Check</button>
 	</div>
-	<div class="instructions">
-		<div class="instructions__inner">
-			<h2 class="h2">About</h2>
-			<br> This HTML validator uses the 
-			<a href="https://validator.w3.org/docs/api.html">W3C Markup Validation Service API</a> to 
-			traverse through all the urls in a domain's sitemap and outputs unique errors.
-			The purpose of this validator is to reduce repetitive manual validation checks for every url 
-			in a domain usually done through the <a href="https://validator.w3.org/nu/">W3C Markup Validation Site</a>,
-			and output feedback from all urls in a single interface.<br><br>
+	<div class="html-validator__instructions">
+		<div class="html-validator__instructions__inner">
+			<div class="flex flex--align-center flex--justify-center mb-8">
+				<h2 class="h2 h2--about inline bold">About</h2>
+				<span class="dropdown-arrow inline" @click="handleAboutDropdownClick"></span>
+			</div>
+			<div class="html-validator__instructions__inner__content">
+				<br> This HTML validator uses the 
+				<a href="https://validator.w3.org/docs/api.html">W3C Markup Validation Service API</a> to 
+				traverse through all the urls in a domain's sitemap and outputs unique errors.
+				The purpose of this validator is to reduce repetitive manual validation checks for every url 
+				in a domain usually done through the <a href="https://validator.w3.org/nu/">W3C Markup Validation Site</a>,
+				and output feedback from all urls in a single interface.<br><br>
 
-			Unique errors are detected through 3 variables: the error message, code extract, and 
-			its position in the template. If an error repeats in every url/template due to a 
-			shared component like the header, it will be outputted once from its first instance and 
-			the rest being ignored.
+				Unique errors are detected through 3 variables: the error message, code extract, and 
+				its position in the template. Only urls that have unique errors are displayed 
+				(e.g. if they have already appeared in another url)
 
-			<h2 class="h2">To do:</h2>
-			<ul>
-				<li>Owen's rec: include all urls but remove duplicate errors so first entry doesn't have to have full content</li>
-			</ul>
+				<h2 class="h2">To do:</h2>
+				<ul>
+					<li>Owen's rec: include all urls but remove duplicate errors so first entry doesn't have to have full content</li>
+				</ul>
+			</div>
 		</div>
 	</div>
 	<div>
-		<h2 class="h2">Results</h2> {{ results?.length }}
+		<h2 class="h2 inline bold">Results</h2> <span class="inline" v-if="results">{{ '(' + results?.length + ' urls)' }}</span>
 		<!-- <div class="loader"></div> -->
-		<div class="grid flex flex--wrap">
+		<div class="grid flex flex--wrap mt-16">
 			<div v-for="(result, index) in results" :id="'result-' + index" class="grid__item mb-80 result">
 
 				<div class="test__url">{{ index + 1}} ) {{result.url}}<span class="test__border test__border--black test__border--s">{{ result.messages.length }} errors</span></div>
@@ -73,6 +77,7 @@
 			urlToCheck: string | null,
 			sourceCodes: { url: string; code: string[]; }[] | null,
 			resultsLoaded: boolean,
+			aboutDropdown: boolean,
 		}
 		{
 			return {
@@ -80,16 +85,15 @@
 				results: null,
 				sourceCodes: null,
 				resultsLoaded: false,
+				aboutDropdown: false,
 			}
 		},
-		// created() {
-		// 	this.fetchApiData();
-		// },
 		methods: {
 			async fetchApiData() { 
 				try{
 					const urls_from_sitemap = this.getUrlsFromSitemapUsingProxySite();
 					const urls = await this.filterUniqueUrls( await urls_from_sitemap );
+					// const urls = await this.getUrlsFromSitemapUsingProxySite();
 
 					let results = null;
 					let validation_results = [];
@@ -108,8 +112,6 @@
 					const unique_errors = this.filterUniqueErrors( await validation_results );
 
 					this.results = JSON.parse(JSON.stringify(unique_errors));
-					console.log(this.results);
-					
 					this.formatHtml();
 			
 				} catch (error) {	
@@ -237,11 +239,10 @@
 				//Use the proxy site (as a cors policy workaround) to get the sitemap source code
 
 				const base_url:string|null = this.urlToCheck;
-				console.log(base_url);
 				// const base_url:string = 'https://www.cbx.charcoalblue.com/';
 				
-				
-				const response = await fetch( 'https://corsproxy.io/?' + encodeURIComponent( base_url + 'sitemap.xml' ) , {
+			
+				const response = await fetch( 'https://corsproxy.io/?' + encodeURIComponent( base_url + '/sitemap.xml' ) , {
 					method: 'GET',
 				});
 				const xmlData = await response.text();
@@ -253,14 +254,29 @@
 
 				for( let i=0; i < sitemapNodes.length; i++ ) { 
 					const textContent:string|null = sitemapNodes[i]?.textContent; //<-- optional chaining
-					if (textContent === null || textContent === undefined) {
-						throw new Error('Failed to fetch XML data');
+					if (!(textContent === null || textContent === undefined || textContent === "")) {
+						urls.push( textContent );
 					}
-					urls.push( textContent.replace("https://www.charcoalblue-experience.test/","https://www.cbx.charcoalblue.com/") );
 				}
 
 				return urls;
 			},
+			handleAboutDropdownClick() {
+				const dropdown_button = document.querySelector<HTMLElement>(".dropdown-arrow");
+				const about_content = document.querySelector<HTMLElement>(".html-validator__instructions__inner__content");
+				if( dropdown_button && about_content) {
+					if( this.aboutDropdown ) {
+						dropdown_button.classList.remove("dropdown-arrow--open");
+						about_content.classList.remove("html-validator__instructions__inner__content--visible");
+						this.aboutDropdown = false;
+					}
+					else if( ! ( this.aboutDropdown && about_content ) ) {
+						dropdown_button.classList.add("dropdown-arrow--open");
+						about_content.classList.add("html-validator__instructions__inner__content--visible");
+						this.aboutDropdown = true;
+					}
+				}
+			}
 		}
 	});
 
