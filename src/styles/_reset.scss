@@ -2,6 +2,10 @@ ul {
 	list-style: none;
 }
 
+ol {
+	list-style: decimal;
+}
+
 
 // Eric Meyer's Reset CSS v2.0 + Extras
 
@@ -93,4 +97,8 @@ button {
 	vertical-align: baseline;
 	margin: 0;
 	padding: 0;
+}
+
+li {
+	text-align: start;
 }

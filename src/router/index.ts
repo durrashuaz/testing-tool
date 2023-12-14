@@ -1,12 +1,12 @@
 import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
-import HomeView from '../views/HomeView.vue'
 import HtmlValidationView from '../views/HtmlValidationView.vue'
+import AccessibilityView from '../views/AccessibilityView.vue'
 
 const routes: Array<RouteRecordRaw> = [
   {
-    path: '/',
-    name: 'home',
-    component: HomeView
+    path: '/accessibility',
+    name: 'accessibility',
+    component: AccessibilityView
   },
   {
     path: '/html-validation',
@@ -14,7 +14,7 @@ const routes: Array<RouteRecordRaw> = [
     component: HtmlValidationView
   },
   {
-    path: '/about',
+    path: '/',
     name: 'about',
     // route level code-splitting
     // this generates a separate chunk (about.[hash].js) for this route
