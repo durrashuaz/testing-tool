@@ -1,6 +1,6 @@
 <template>
 	<div class="html-validator__form">
-		<label class="bold" for="url">Homepage URL</label><br>
+		<label class="bold" for="url">Base URL</label><br>
 		<input type="text" id="url" name="url" v-model="urlToCheck" class="html-validator__form__input">
 		<button class="button" @click="fetchApiData">Check</button>
 	</div>
@@ -16,16 +16,11 @@
 				traverse through all the urls in a domain's sitemap and outputs unique errors.
 				The purpose of this validator is to reduce repetitive manual validation checks for every url 
 				in a domain usually done through the <a href="https://validator.w3.org/nu/">W3C Markup Validation Site</a>,
-				and output feedback from all urls in a single interface.<br><br>
+				and output feedback from all urls in a single page.<br><br>
 
 				Unique errors are detected through 3 variables: the error message, code extract, and 
 				its position in the template. Only urls that have unique errors are displayed 
-				(e.g. if they have already appeared in another url)
-
-				<h2 class="h2">To do:</h2>
-				<ul>
-					<li>Owen's rec: include all urls but remove duplicate errors so first entry doesn't have to have full content</li>
-				</ul>
+				(e.g. if they have not already appeared in another url)
 			</div>
 		</div>
 	</div>
@@ -56,7 +51,7 @@
 					<div class="test__url">{{result.url}}</div>
 					<pre>
 						<ol>
-							<li v-for="(line, index_message) in getSourceCodeByUrl( result.url )" :id="'url-'+ index +'line-'+(index_message+1)" :key="index_message" :class="{ 'test__highlighted': getLineErrorsByUrl( result.url ).includes(index_message+1) }">{{ line == '' ? '&nbsp;' : line }}</li>
+							<li v-for="(line, index_message) in getSourceCodeByUrl( result.url )" :id="'url-'+ index +'line-'+(index_message+1)" :key="index_message" :class="{ 'test__highlighted': getLineErrorsByUrl( result.url ).includes(index_message+1) }"><span>{{ (index_message+1) }}</span>{{ line == '' ? '&nbsp;' : line }}</li>
 						</ol>
 					</pre>
 				</div>
@@ -98,10 +93,9 @@
 		},
 		methods: {
 			async fetchApiData() { 
-				try{
-					//const urls_from_sitemap = this.getUrlsFromSitemapUsingProxySite();
-					//const urls = await this.filterUniqueUrls( await urls_from_sitemap );
-					const urls = await this.getUrlsFromSitemapUsingProxySite();
+				try {
+					const urls_from_sitemap = this.getUrlsFromSitemapUsingProxySite();
+					const urls = await this.filterUniqueUrls( await urls_from_sitemap );
 
 					let results = null;
 					let validation_results = [];
@@ -109,21 +103,12 @@
 
 					for( let i=0; i<urls.length; i++ ) {
 						this.requestStatus = "fetching errors for " + urls[i] + "...";
-						const request_start_time:Date = new Date();
 						const response = await fetch( `https://validator.w3.org/nu/?out=json&showsource=yes&doc=${urls[i]}`, {
 							method: 'GET',
 							headers: {
 								'Content-Type': 'application/json',
 							},
 						});
-						const request_end_time:Date = new Date();
-						const request_duration:number = request_end_time.getTime() - request_start_time.getTime();
-						// if( i = 0 ) {
-						// 	this.requestTotalTime = request_duration * urls.length;
-						// }
-						// if(this.requestTotalTime) {
-						// 	this.requestTimeRemaining =  ( this.requestTotalTime - request_duration )/1000;
-						// }
 						if ( !response.ok ) {
 							this.requestStatus = `HTTP error! Status: ${response.status}`;
 							failed_requests.push( urls[i] );
@@ -176,8 +161,12 @@
 				return urls;
 			},
 			async filterUniqueUrls( urls_from_sitemap: string[] ) {
+			/* Use first slug to check for unique urls 
+				limitation: weak determination of a unique url
+				solution: unqiue urls stop at second last slug of repeated pattern urls - get only first instance
+			*/
 				const urls = await urls_from_sitemap;
-				let unique_urls = []; 
+				let unique_urls:string[] = []; 
 				
 				for ( let i=0; i<urls.length; i++ ) {
 					const url = new URL(urls[i]);
@@ -194,8 +183,8 @@
 				return unique_urls;
 			},
 			filterUniqueErrors ( errors: Result[] ) { 
-			/*filter out repeated errors (e.g. from shared components like header and footer)
-			check for same error, extract, and column within range of 10 */
+			/* Filter out repeated errors (e.g. from shared components like header and footer)
+			check for same error, extract, and column within a range */
 
 				let messages_temp = [];
 
@@ -207,7 +196,7 @@
 						const error_item = errors[i].messages[j];
 						for( let item of messages_temp ) {
 							let same_error= false; let same_extract = false; let same_location = false;
-							if ( item.message === error_item.message  ) {
+							if ( item.message === error_item.message ) {
 								same_error = true;
 							}
 							if ( item.extract === error_item.extract ) {

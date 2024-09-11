@@ -1,13 +1,6 @@
 <template>
-   <div class="html-validator__form">
-		<label class="bold" for="url">Homepage URL</label><br>
-		<input type="text" id="url" name="url" class="html-validator__form__input">
-	</div>
-
    <nav class="nav">
-    <router-link to="/">About</router-link> |
-    <router-link to="/html-validation">Html Validator</router-link> | 
-    <router-link to="/accessibility">Accessibility Check</router-link>
+    <router-link to="/html-validation">W3C Html Validator</router-link>
   </nav>
   <router-view/>
 </template>
